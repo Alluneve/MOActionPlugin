@@ -5,22 +5,15 @@ using System.Linq;
 
 namespace MOAction.Configuration;
 
-public class MoActionStack : IEquatable<MoActionStack>, IComparable<MoActionStack>
+public class MoActionStack(Lumina.Excel.Sheets.Action baseAction, List<StackEntry> list)
+    : IEquatable<MoActionStack>, IComparable<MoActionStack>
 {
     public static readonly VirtualKey[] AllKeys = [VirtualKey.NO_KEY, VirtualKey.SHIFT, VirtualKey.MENU, VirtualKey.CONTROL];
-    public Lumina.Excel.Sheets.Action BaseAction { get; set; }
-    public List<StackEntry> Entries { get; set; }
-    public uint Job { get; set; }
+    public Lumina.Excel.Sheets.Action BaseAction { get; set; } = baseAction;
+    public List<StackEntry> Entries { get; set; } = list ?? [];
+    public uint Job { get; set; } = uint.MaxValue;
 
-    public VirtualKey Modifier { get; set; }
-
-    public MoActionStack(Lumina.Excel.Sheets.Action baseAction, List<StackEntry> list)
-    {
-        BaseAction = baseAction;
-        Entries = list ?? [];
-        Job = uint.MaxValue;
-        Modifier = 0;
-    }
+    public VirtualKey Modifier { get; set; } = 0;
 
     public bool Equals(ConfigurationEntry c)
     {

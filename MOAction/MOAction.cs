@@ -84,7 +84,7 @@ public class MOAction
         return ret;
     }
 
-    private unsafe (Lumina.Excel.Sheets.Action action, IGameObject target) GetActionTarget(uint actionID, ActionType actionType)
+    private unsafe (Lumina.Excel.Sheets.Action action, IGameObject? target) GetActionTarget(uint actionID, ActionType actionType)
     {
         if (!Sheets.ActionSheet.TryGetRow(actionID, out var action))
         {
@@ -98,13 +98,13 @@ public class MOAction
             return (default, null);
         }
 
-        if (Plugin.ClientState.LocalPlayer == null)
+        if (!Plugin.PlayerState.IsLoaded)
         {
             Plugin.PluginLog.Verbose("ILLEGAL STATE: Dalamud has no reference to LocalPlayer.\nFailsafe triggering early return");
             return (default, null);
         }
 
-        if (Plugin.ClientState.LocalPlayer.ClassJob.RowId == 0)
+        if (Plugin.PlayerState.ClassJob.RowId == 0)
         {
             Plugin.PluginLog.Verbose("ILLEGAL STATE: Dalamud thinks you're an ADV\nFailsafe triggering early return");
             return (default, null);
@@ -117,7 +117,7 @@ public class MOAction
             (entry.BaseAction.RowId == action.RowId ||
             entry.BaseAction.RowId == adjusted ||
             actionManager->GetAdjustedActionId(entry.BaseAction.RowId) == adjusted)
-            && VerifyJobEqualsOrEqualsParentJob(entry.Job, Plugin.ClientState.LocalPlayer.ClassJob.RowId)
+            && VerifyJobEqualsOrEqualsParentJob(entry.Job, Plugin.PlayerState.ClassJob.RowId)
             );
 
         MoActionStack stackToUse = null;
@@ -152,9 +152,9 @@ public class MOAction
         return (default, null);
     }
 
-    private unsafe (bool, IGameObject Target) CanUseAction(StackEntry targ, ActionType actionType)
+    private unsafe (bool, IGameObject? Target) CanUseAction(StackEntry targ, ActionType actionType)
     {
-        if (targ.Target == null || targ.Action.RowId == 0 || Plugin.ClientState.LocalPlayer == null)
+        if (targ.Target == null || targ.Action.RowId == 0 || !Plugin.PlayerState.IsLoaded)
             return (false, null);
 
         var actionManager = ActionManager.Instance();
@@ -163,7 +163,7 @@ public class MOAction
 
         var target = targ.Target.GetTarget();
         if (target == null)
-            return targ.Target.ObjectNeeded ? (false, Plugin.ClientState.LocalPlayer) : (true, null);
+            return targ.Target.ObjectNeeded ? (false, Plugin.ObjectTable.LocalPlayer!) : (true, null);
 
         // Check if ability is on CD or not (charges are fun!)
         var abilityOnCoolDownResponse = actionManager->IsActionOffCooldown(actionType, action.RowId);
@@ -171,7 +171,7 @@ public class MOAction
         if (!abilityOnCoolDownResponse)
             return (false, target);
 
-        var player = Plugin.ClientState.LocalPlayer;
+        var player = Plugin.ObjectTable.LocalPlayer!;
         var targetPtr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address;
         if (Plugin.Configuration.RangeCheck)
         {
@@ -187,7 +187,7 @@ public class MOAction
         if (!action.IsRoleAction)
         {
             Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
-            if (action.ClassJobLevel > Plugin.ClientState.LocalPlayer.Level)
+            if (action.ClassJobLevel > Plugin.ObjectTable.LocalPlayer!.Level)
                 return (false, target);
         }
 
@@ -200,7 +200,7 @@ public class MOAction
         if (selfOnlyTargetAction)
         {
             Plugin.PluginLog.Verbose("Can only use this action on player, setting player as target");
-            target = Plugin.ClientState.LocalPlayer;
+            target = Plugin.ObjectTable.LocalPlayer!;
         }
 
         var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId, (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address);
@@ -209,21 +209,20 @@ public class MOAction
         return (gameCanUseActionResponse, target);
     }
 
-    public unsafe IGameObject GetGuiMoPtr() =>
+    public unsafe IGameObject? GetGuiMoPtr() =>
         Plugin.Objects.CreateObjectReference((nint)PronounModule.Instance()->UiMouseOverTarget);
 
-    public IGameObject GetFieldMo() =>
+    public IGameObject? GetFieldMo() =>
         Plugin.TargetManager.MouseOverTarget;
 
-    public unsafe IGameObject GetActorFromPlaceholder(string placeholder) =>
+    public unsafe IGameObject? GetActorFromPlaceholder(string placeholder) =>
         Plugin.Objects.CreateObjectReference((nint)PronounModule.Instance()->ResolvePlaceholder(placeholder, 1, 0));
 
 
-    public unsafe IGameObject GetActorFromCrosshairLocation() =>
+    public unsafe IGameObject? GetActorFromCrosshairLocation() =>
         Plugin.Objects.CreateObjectReference((nint)TargetSystem.Instance()->GetMouseOverObject(Plugin.Configuration.CrosshairWidth, Plugin.Configuration.CrosshairHeight));
 
-
-    public static bool VerifyJobEqualsOrEqualsParentJob(uint job, uint LocalPlayerRowID) =>
-    LocalPlayerRowID == job || (Sheets.ClassJobSheet.TryGetRow(job, out var classjob) && LocalPlayerRowID == classjob.ClassJobParent.RowId);
+    private static bool VerifyJobEqualsOrEqualsParentJob(uint job, uint localPlayerRowId) =>
+    localPlayerRowId == job || (Sheets.ClassJobSheet.TryGetRow(job, out var classjob) && localPlayerRowId == classjob.ClassJobParent.RowId);
 
 }

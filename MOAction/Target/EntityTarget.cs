@@ -7,13 +7,10 @@ public class EntityTarget : TargetType
     public EntityTarget(PtrFunc func, string name) : base(func, name) { }
     public EntityTarget(PtrFunc func, string name, bool objneed) : base(func, name, objneed) { }
 
-    public override IGameObject GetTarget()
+    public override IGameObject? GetTarget()
     {
         var obj = GetPtr();
-        if (IsTargetValid())
-            return obj;
-
-        return null;
+        return IsTargetValid() ? obj : null;
     }
 
     public override bool IsTargetValid()
