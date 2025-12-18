@@ -6,11 +6,9 @@ using System.Linq;
 using Dalamud.Bindings.ImGui;
 using MOAction.Target;
 using MOAction.Configuration;
-using Dalamud.Game.ClientState.Objects;
 using System.Text;
 using Newtonsoft.Json;
 using Dalamud.Plugin.Services;
-using Dalamud.Game;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using MOAction.Windows;
@@ -117,6 +115,7 @@ public class Plugin : IDalamudPlugin
         }
 
         Configuration = config;
+        PluginLog.Information($"Loading in {Configuration.Stacks.Count} stacks.");
         SavedStacks = SortStacks(RebuildStacks(Configuration.Stacks));
         foreach (var (k, v) in SavedStacks)
         {
@@ -211,7 +210,7 @@ public class Plugin : IDalamudPlugin
 
     public List<MoActionStack> RebuildStacks(List<ConfigurationEntry> configurationEntries)
     {
-        if (configurationEntries == null)
+        if (configurationEntries.Count == 0)
             return [];
 
         var toReturn = new List<MoActionStack>();
@@ -223,8 +222,10 @@ public class Plugin : IDalamudPlugin
 
             var job = entry.JobIdx;
             List<StackEntry> entries = [];
+            PluginLog.Verbose("entry: {entry}",entry);
             foreach (var stackEntry in entry.Stack)
             {
+                PluginLog.Verbose("stack entry: {stackEntry}", stackEntry);
                 var targ = TargetTypes.FirstOrDefault(x => x.TargetName == stackEntry.Item1) ?? GroundTargetTypes;
                 var action1 = ApplicableActions.FirstOrDefault(x => x.RowId == stackEntry.Item2);
                 if (action1.RowId == 0)
