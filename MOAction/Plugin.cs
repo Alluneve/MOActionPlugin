@@ -184,12 +184,12 @@ public class Plugin : IDalamudPlugin
         SortStacks();
         MoAction.Stacks.Clear();
         foreach (var x in SavedStacks)
-            foreach (var entry in x.Value)
-                MoAction.Stacks.Add(entry);
+        foreach (var entry in x.Value)
+            MoAction.Stacks.Add(entry);
 
         Configuration.Stacks.Clear();
         foreach (var x in MoAction.Stacks)
-            Configuration.Stacks.Add(new ConfigurationEntry(x.BaseAction.RowId, x.Entries.Select(y => (y.Target.TargetName, y.Action.RowId)).ToList(), x.Modifier, x.Job));
+            Configuration.Stacks.Add(new ConfigurationEntry(x.BaseAction.RowId, [.. x.Entries.Select(y => new ConfigurationEntry.ConfigurationActionStack(y.Target.TargetName,y.Action.RowId))], x.Modifier, x.Job));
 
         PluginInterface.SavePluginConfig(Configuration);
     }
@@ -223,11 +223,11 @@ public class Plugin : IDalamudPlugin
             var job = entry.JobIdx;
             List<StackEntry> entries = [];
             PluginLog.Verbose("entry: {entry}",entry);
-            foreach (var stackEntry in entry.Stack)
+            foreach (var stackEntry in entry.ConfigurationActionStacks)
             {
                 PluginLog.Verbose("stack entry: {stackEntry}", stackEntry);
-                var targ = TargetTypes.FirstOrDefault(x => x.TargetName == stackEntry.Item1) ?? GroundTargetTypes;
-                var action1 = ApplicableActions.FirstOrDefault(x => x.RowId == stackEntry.Item2);
+                var targ = TargetTypes.FirstOrDefault(x => x.TargetName == stackEntry.Target) ?? GroundTargetTypes;
+                var action1 = ApplicableActions.FirstOrDefault(x => x.RowId == stackEntry.ActionId);
                 if (action1.RowId == 0)
                     continue;
 

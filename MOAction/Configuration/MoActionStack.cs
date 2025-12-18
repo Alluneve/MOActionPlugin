@@ -17,14 +17,14 @@ public class MoActionStack(Lumina.Excel.Sheets.Action baseAction, List<StackEntr
 
     public bool Equals(ConfigurationEntry c)
     {
-        if (c.Stack.Count != Entries.Count)
+        if (c.ConfigurationActionStacks.Count != Entries.Count)
             return false;
 
         for (var i = 0; i < Entries.Count; i++)
         {
             var myEntry = Entries[i];
-            var theirEntry = c.Stack[i];
-            if (myEntry.Target.TargetName != theirEntry.Item1 && myEntry.Action.RowId != theirEntry.Item2)
+            var theirEntry = c.ConfigurationActionStacks[i];
+            if (myEntry.Target.TargetName != theirEntry.Target && myEntry.Action.RowId != theirEntry.ActionId)
                 return false;
         }
 
