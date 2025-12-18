@@ -6,11 +6,9 @@ using System.Linq;
 using Dalamud.Bindings.ImGui;
 using MOAction.Target;
 using MOAction.Configuration;
-using Dalamud.Game.ClientState.Objects;
 using System.Text;
 using Newtonsoft.Json;
 using Dalamud.Plugin.Services;
-using Dalamud.Game;
 using Dalamud.Interface.Windowing;
 using Dalamud.IoC;
 using FFXIVClientStructs.FFXIV.Client.Game;
@@ -32,6 +30,8 @@ public class Plugin : IDalamudPlugin
     [PluginService] internal static IObjectTable Objects { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
     [PluginService] internal static IChatGui Ichatgui { get; private set; } = null!;
+    [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
+    [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
 
 
     public MOActionConfiguration Configuration;
@@ -197,7 +197,7 @@ public class Plugin : IDalamudPlugin
 
     public List<MoActionStack> RebuildStacks(List<ConfigurationEntry> configurationEntries)
     {
-        if (configurationEntries == null)
+        if (configurationEntries.Count == 0)
             return [];
 
         var toReturn = new List<MoActionStack>();

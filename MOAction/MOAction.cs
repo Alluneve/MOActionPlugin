@@ -30,16 +30,18 @@ public class MOAction
 
     public unsafe void Enable()
     {
-        // read current bytes at GtQueuePatch for Dispose
-        SafeMemory.ReadBytes(Address.GtQueuePatch, 3, out var prePatch);
-        Address.PreGtQueuePatchData = prePatch;
+        if (false)
+        {
+            // read current bytes at GtQueuePatch for Dispose
+            SafeMemory.ReadBytes(Address.GtQueuePatch, 3, out var prePatch);
+            Address.PreGtQueuePatchData = prePatch;
 
-        //writing a AL operator to overwrite existing XOR operator
-        SafeMemory.WriteBytes(Address.GtQueuePatch, [0x90, 0x32, 0xC0]);
+            //writing a AL operator to overwrite existing XOR operator
+            SafeMemory.WriteBytes(Address.GtQueuePatch, [0x90, 0x32, 0xC0]);
 
-        RequestActionHook =
-            Plugin.HookProvider.HookFromAddress<ActionManager.Delegates.UseAction>(
-                ActionManager.MemberFunctionPointers.UseAction, HandleRequestAction);
+        }
+
+        RequestActionHook = Plugin.HookProvider.HookFromAddress<ActionManager.Delegates.UseAction>(ActionManager.MemberFunctionPointers.UseAction, HandleRequestAction);
         RequestActionHook.Enable();
     }
 
@@ -49,8 +51,11 @@ public class MOAction
         {
             RequestActionHook.Dispose();
 
-            //re-write the original 2 bytes that were there
-            SafeMemory.WriteBytes(Address.GtQueuePatch, Address.PreGtQueuePatchData);
+            if (false)
+            {
+                //re-write the original 2 bytes that were there
+                SafeMemory.WriteBytes(Address.GtQueuePatch, Address.PreGtQueuePatchData);
+            }
         }
     }
 
@@ -100,7 +105,7 @@ public class MOAction
     /// </summary>
     /// <param name="actionId">the action id being handled</param>
     /// <param name="actionType">action type is only used in the off-cooldown check, should always be "Action"</param>
-    private unsafe (Lumina.Excel.Sheets.Action action, IGameObject target) GetActionTarget(uint actionId,
+    private unsafe (Lumina.Excel.Sheets.Action action, IGameObject? target) GetActionTarget(uint actionId,
         ActionType actionType)
     {
         if (!Sheets.ActionSheet.TryGetRow(actionId, out var action))
@@ -117,14 +122,14 @@ public class MOAction
             return (default, null);
         }
 
-        if (Plugin.ClientState.LocalPlayer == null)
+        if (!Plugin.PlayerState.IsLoaded)
         {
             Plugin.PluginLog.Verbose(
                 "ILLEGAL STATE: Dalamud has no reference to LocalPlayer.\nFailsafe triggering early return");
             return (default, null);
         }
 
-        if (Plugin.ClientState.LocalPlayer.ClassJob.RowId == 0)
+        if (Plugin.PlayerState.ClassJob.RowId == 0)
         {
             Plugin.PluginLog.Verbose("ILLEGAL STATE: Dalamud thinks you're an ADV\nFailsafe triggering early return");
             return (default, null);
@@ -164,7 +169,7 @@ public class MOAction
                     entry.BaseAction.RowId == adjusted ||
                     actionManager->GetAdjustedActionId(entry.BaseAction.RowId) == adjusted
                 )
-                && VerifyJobEqualsOrEqualsParentJob(entry.Job, Plugin.ClientState.LocalPlayer.ClassJob.RowId)
+                && VerifyJobEqualsOrEqualsParentJob(entry.Job, Plugin.PlayerState.ClassJob.RowId)
             );
         }
 
@@ -214,7 +219,7 @@ public class MOAction
         target = stackentry.Target.GetTarget();
         var id = stackentry.Action.RowId;
         //Early sanity checks
-        if (stackentry.Target == null || id == 0 || Plugin.ClientState.LocalPlayer == null ||
+        if (stackentry.Target == null || id == 0 || !Plugin.PlayerState.IsLoaded ||
             stackentry.Action.ActionType is not (ActionType.GeneralAction or ActionType.Action))
         {
             action = default;
@@ -250,7 +255,7 @@ public class MOAction
         if (!abilityOnCoolDownResponse)
             return false;
 
-        var player = Plugin.ClientState.LocalPlayer;
+        var player = Plugin.ObjectTable.LocalPlayer!;
         var targetPtr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address;
         if (Plugin.Configuration.RangeCheck)
         {
@@ -267,7 +272,7 @@ public class MOAction
         {
             Plugin.PluginLog.Verbose(
                 $"Is {action.Name.ExtractText()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
-            if (action.ClassJobLevel > Plugin.ClientState.LocalPlayer.Level)
+            if (action.ClassJobLevel > Plugin.ObjectTable.LocalPlayer!.Level)
                 return false;
         }
 
@@ -281,7 +286,7 @@ public class MOAction
         if (selfOnlyTargetAction)
         {
             Plugin.PluginLog.Verbose("Can only use this action on player, setting player as target");
-            target = Plugin.ClientState.LocalPlayer;
+            target = Plugin.ObjectTable.LocalPlayer!;
         }
 
         var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId,
@@ -291,23 +296,23 @@ public class MOAction
         return gameCanUseActionResponse;
     }
 
-    public unsafe IGameObject GetGuiMoPtr() =>
+    public unsafe IGameObject? GetGuiMoPtr() =>
         Plugin.Objects.CreateObjectReference((nint)PronounModule.Instance()->UiMouseOverTarget);
 
-    public IGameObject GetFieldMo() =>
+    public IGameObject? GetFieldMo() =>
         Plugin.TargetManager.MouseOverTarget;
 
-    public unsafe IGameObject GetActorFromPlaceholder(string placeholder) =>
+    public unsafe IGameObject? GetActorFromPlaceholder(string placeholder) =>
         Plugin.Objects.CreateObjectReference((nint)PronounModule.Instance()->ResolvePlaceholder(placeholder, 1, 0));
 
 
-    public unsafe IGameObject GetActorFromCrosshairLocation() =>
+    public unsafe IGameObject? GetActorFromCrosshairLocation() =>
         Plugin.Objects.CreateObjectReference(
             (nint)TargetSystem.Instance()->GetMouseOverObject(Plugin.Configuration.CrosshairWidth,
                 Plugin.Configuration.CrosshairHeight));
 
 
-    public static bool VerifyJobEqualsOrEqualsParentJob(uint job, uint LocalPlayerRowID) =>
+    private static bool VerifyJobEqualsOrEqualsParentJob(uint job, uint LocalPlayerRowID) =>
         LocalPlayerRowID == job || (Sheets.ClassJobSheet.TryGetRow(job, out var classjob) &&
                                     LocalPlayerRowID == classjob.ClassJobParent.RowId);
 }

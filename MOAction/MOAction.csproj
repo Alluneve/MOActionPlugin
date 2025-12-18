@@ -1,11 +1,11 @@
-﻿<Project Sdk="Dalamud.NET.Sdk/13.0.0">
+﻿<Project Sdk="Dalamud.NET.Sdk/14.0.0">
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <AssemblyTitle>MOActionPlugin</AssemblyTitle>
     <Product>MOActionPlugin</Product>
     <Description>This plugin allows for actions to be used on mouseover targets without a macro.</Description>
     <Copyright>Copyleft Infi, attick 2025 baybeeee</Copyright>
-    <Version>4.8.0</Version>
+    <Version>4.9.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <OutputPath>bin\$(Configuration)\</OutputPath>
     <AppDesignerFolder>Properties.bak</AppDesignerFolder>

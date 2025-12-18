@@ -2,28 +2,15 @@
 
 namespace MOAction.Target;
 
-public abstract class TargetType
+public abstract class TargetType(TargetType.PtrFunc function, string name, bool objneed = true)
 {
-    public delegate IGameObject PtrFunc();
-    public PtrFunc GetPtr;
-    public string TargetName;
-    public bool ObjectNeeded;
+    public delegate IGameObject? PtrFunc();
 
-    public TargetType(PtrFunc function, string name)
-    {
-        GetPtr = function;
-        TargetName = name;
-        ObjectNeeded = true;
-    }
+    protected readonly PtrFunc GetPtr = function;
+    public readonly string TargetName = name;
+    public readonly bool ObjectNeeded = objneed;
 
-    public TargetType(PtrFunc function, string name, bool objneed)
-    {
-        GetPtr = function;
-        TargetName = name;
-        ObjectNeeded = objneed;
-    }
-
-    public abstract IGameObject GetTarget();
+    public abstract IGameObject? GetTarget();
     public abstract bool IsTargetValid();
 
     public override string ToString() => TargetName;
