@@ -30,16 +30,12 @@ public class MOAction
 
     public unsafe void Enable()
     {
-        if (false)
-        {
-            // read current bytes at GtQueuePatch for Dispose
-            SafeMemory.ReadBytes(Address.GtQueuePatch, 3, out var prePatch);
-            Address.PreGtQueuePatchData = prePatch;
+        // read current bytes at GtQueuePatch for Dispose
+        SafeMemory.ReadBytes(Address.GtQueuePatch, 3, out var prePatch);
+        Address.PreGtQueuePatchData = prePatch;
 
-            //writing a AL operator to overwrite existing XOR operator
-            SafeMemory.WriteBytes(Address.GtQueuePatch, [0x90, 0x32, 0xC0]);
-
-        }
+        //writing a AL operator to overwrite existing XOR operator
+        SafeMemory.WriteBytes(Address.GtQueuePatch, [0x90, 0x32, 0xC0]);
 
         RequestActionHook = Plugin.HookProvider.HookFromAddress<ActionManager.Delegates.UseAction>(ActionManager.MemberFunctionPointers.UseAction, HandleRequestAction);
         RequestActionHook.Enable();
@@ -50,12 +46,8 @@ public class MOAction
         if (RequestActionHook.IsEnabled)
         {
             RequestActionHook.Dispose();
-
-            if (false)
-            {
-                //re-write the original 2 bytes that were there
-                SafeMemory.WriteBytes(Address.GtQueuePatch, Address.PreGtQueuePatchData);
-            }
+            //re-write the original 2 bytes that were there
+            SafeMemory.WriteBytes(Address.GtQueuePatch, Address.PreGtQueuePatchData);
         }
     }
 
