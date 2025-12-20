@@ -186,7 +186,7 @@ public class MOAction
         if (!action.IsRoleAction)
         {
             Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
-            if (action.ClassJobLevel > Plugin.ObjectTable.LocalPlayer!.Level)
+            if (action.ClassJobLevel > player.Level)
                 return (false, target);
         }
 
@@ -199,7 +199,7 @@ public class MOAction
         if (selfOnlyTargetAction)
         {
             Plugin.PluginLog.Verbose("Can only use this action on player, setting player as target");
-            target = Plugin.ObjectTable.LocalPlayer!;
+            target = player;
         }
 
         var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId, (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address);
