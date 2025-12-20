@@ -31,9 +31,9 @@ public class ConfigurationEntry
         Modifier = modifier;
         if (job == null)
         {
-            if (jobIdx == 0 && Plugin.ClientState.LocalPlayer != null)
+            if (jobIdx == 0 && Plugin.PlayerState.IsLoaded)
             {
-                JobIdx = Plugin.ClientState.LocalPlayer.ClassJob.RowId;
+                JobIdx = Plugin.PlayerState.ClassJob.RowId;
             }
             else
             {
@@ -58,10 +58,21 @@ public class ConfigurationEntry
         }
     }
 
+    public override string ToString()
+    {
+        return
+            $"BaseId: {BaseId}, Modifier: {Modifier}, JobIdx: {JobIdx}, Stacks: {ConfigurationActionStacks.Count}";
+    }
+
     [Serializable]
     public class ConfigurationActionStack(string target, uint actionId)
     {
         public string Target { get; set; } = target;
         public uint ActionId { get; set; } = actionId;
+
+        public override string ToString()
+        {
+            return $"Target: {Target}, ActionId: {ActionId}";
+        }
     }
 }
