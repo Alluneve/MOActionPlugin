@@ -1,4 +1,4 @@
-﻿﻿using Dalamud.Game.ClientState.Keys;
+﻿using Dalamud.Game.ClientState.Keys;
 using System;
 using System.Collections.Generic;
 using Newtonsoft.Json;
@@ -23,13 +23,19 @@ public class ConfigurationEntry
     }
 
     [JsonConstructor]
-    [Obsolete("This constructor is a one-time migration from the old job string to jobIdx uint and/or from the old stack to the new stack Added 16/06/2025")]
-    public ConfigurationEntry(uint baseId, List<ConfigurationActionStack> configurationActionStacks, VirtualKey modifier, uint jobIdx,
-        string job = null, List<(string, uint)> stack = null)
+    [Obsolete(
+        "This constructor is a one-time migration from the old job string to jobIdx uint and/or from the old stack to the new stack Added 16/06/2025")]
+    public ConfigurationEntry(uint baseId,
+        List<ConfigurationActionStack>? configurationActionStacks,
+        VirtualKey modifier,
+        uint? jobIdx,
+        string? job,
+        List<(string, uint)>? stack)
     {
         BaseId = baseId;
         Modifier = modifier;
-        if (job == null)
+
+        if (jobIdx is not null)
         {
             if (jobIdx == 0 && Plugin.PlayerState.IsLoaded)
             {
@@ -37,20 +43,24 @@ public class ConfigurationEntry
             }
             else
             {
-                JobIdx = jobIdx;
+                JobIdx = jobIdx.Value;
             }
         }
+        //Legacy configuration parsing: string job containing a number
         else
         {
             JobIdx = uint.TryParse(job, out var num) ? num : 0;
         }
-        if (stack == null)
+
+        if (configurationActionStacks is not null)
         {
             ConfigurationActionStacks = configurationActionStacks;
         }
+        //Legacy configuration parsing: Tuple(uint string)
         else
         {
-            ConfigurationActionStacks = new();
+            ConfigurationActionStacks = [];
+            if (stack is null) return;
             foreach (var tuple in stack)
             {
                 ConfigurationActionStacks.Add(new ConfigurationActionStack(tuple.Item1, tuple.Item2));
@@ -60,8 +70,7 @@ public class ConfigurationEntry
 
     public override string ToString()
     {
-        return
-            $"BaseId: {BaseId}, Modifier: {Modifier}, JobIdx: {JobIdx}, Stacks: {ConfigurationActionStacks.Count}";
+        return $"BaseId: {BaseId}, Modifier: {Modifier}, JobIdx: {JobIdx}, Stacks: {ConfigurationActionStacks.Count}";
     }
 
     [Serializable]
