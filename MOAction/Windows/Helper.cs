@@ -84,7 +84,7 @@ public static class Helper
     {
         if (plugin.Configuration.DrawCrosshair)
         {
-            if (Plugin.ClientState.LocalPlayer == null)
+            if (Plugin.ObjectTable.LocalPlayer == null)
                 return;
 
             var drawlist = ImGui.GetBackgroundDrawList();
@@ -97,7 +97,7 @@ public static class Helper
             var right = center with { X = center.X + plugin.Configuration.CrosshairSize };
 
             var color = ImGui.ColorConvertFloat4ToU32(
-                Plugin.ClientState.LocalPlayer.IsCasting
+                Plugin.ObjectTable.LocalPlayer.IsCasting
                     ? plugin.Configuration.CrosshairCastColor : plugin.MoAction.GetActorFromCrosshairLocation()?.IsValid() ?? false
                         ? plugin.Configuration.CrosshairValidColor : plugin.Configuration.CrosshairInvalidColor);
 

@@ -79,13 +79,23 @@ public partial class ConfigWindow : Window, IDisposable
         }
     }
 
-    private void ImportStringToMouseOverActions(String import)
+    private void ImportStringToMouseOverActions(string encoded)
     {
         try
         {
-            var tempStacks = Plugin.SortStacks(Plugin.RebuildStacks(JsonConvert.DeserializeObject<List<ConfigurationEntry>>(Encoding.UTF8.GetString(Convert.FromBase64String(import)))));
-            //TODO maybe write those 2 information pluginlogs to the chatlog as dalamud informational text?
-            Plugin.PluginLog.Information("Imported stacks on base actions will never overwrite existing stacks and are thus not imported.");
+            var import = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+            var configEntries = JsonConvert.DeserializeObject<List<ConfigurationEntry>>(import);
+            if (configEntries == null || configEntries.Count == 0)
+            {
+                Plugin.PluginLog.Warning("Importing configuration entry failed.");
+                Plugin.PluginLog.Warning($"Base64: {encoded}");
+
+                Plugin.Chat.PrintError("Error importing configuration entry.");
+                return;
+            }
+
+            var tempStacks = Plugin.SortStacks(Plugin.RebuildStacks(configEntries));
+
             Plugin.Chat.Print("Imported stacks on base actions will never overwrite existing stacks and are thus not imported.", "MoAction", 0x1F);
             foreach (var (classjob, v) in tempStacks)
             {

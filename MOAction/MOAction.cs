@@ -202,7 +202,7 @@ public class MOAction
         }
 
         var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId, (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address);
-        Plugin.PluginLog.Verbose($"Can I use action: {action.RowId} with name {action.Name.ToString()} on target {target.DataId} with name {target.Name} : {gameCanUseActionResponse}");
+        Plugin.PluginLog.Verbose($"Can I use action: {action.RowId} with name {action.Name.ToString()} on target {target.BaseId} with name {target.Name} : {gameCanUseActionResponse}");
 
         return (gameCanUseActionResponse, target);
     }
