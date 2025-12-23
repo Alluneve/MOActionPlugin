@@ -23,9 +23,7 @@ public class MOAction
     public MOAction(Plugin plugin)
     {
         Plugin = plugin;
-        Address = new MOActionAddressResolver(Plugin.SigScanner);
-
-        Plugin.PluginLog.Info("===== M O A C T I O N =====");
+        Address = new MOActionAddressResolver();
     }
 
     public unsafe void Enable()
@@ -46,7 +44,6 @@ public class MOAction
         if (RequestActionHook.IsEnabled)
         {
             RequestActionHook.Dispose();
-
             //re-write the original 2 bytes that were there
             SafeMemory.WriteBytes(Address.GtQueuePatch, Address.PreGtQueuePatchData);
         }
@@ -64,11 +61,11 @@ public class MOAction
             return RequestActionHook.Original(thisPtr, actionType, actionId, targetId, extraParam, mode, comboRouteId, outOptAreaTargeted);
 
         var objectId = target?.GameObjectId ?? 0xE0000000;
-        Plugin.PluginLog.Verbose($"Execution Action {action.Name.ExtractText()} with ActionID {action.RowId} on object with ObjectId {objectId}");
+        Plugin.PluginLog.Verbose($"Execution Action {action.Name.ToString()} with ActionID {action.RowId} on object with ObjectId {objectId}");
 
         var ret = RequestActionHook.Original(thisPtr, actionType, action.RowId, objectId, extraParam, mode, comboRouteId, outOptAreaTargeted);
 
-        Plugin.PluginLog.Verbose($"Executed Action {action.Name.ExtractText()} with ActionID {action.RowId} on object with ObjectId {objectId}, response: {ret}");
+        Plugin.PluginLog.Verbose($"Executed Action {action.Name.ToString()} with ActionID {action.RowId} on object with ObjectId {objectId}, response: {ret}");
 
         // Enqueue GT action
         var actionManager = ActionManager.Instance();
@@ -84,9 +81,9 @@ public class MOAction
         return ret;
     }
 
-    private unsafe (Lumina.Excel.Sheets.Action action, IGameObject target) GetActionTarget(uint actionID, ActionType actionType)
+    private unsafe (Lumina.Excel.Sheets.Action action, IGameObject? target) GetActionTarget(uint actionId, ActionType actionType)
     {
-        if (!Sheets.ActionSheet.TryGetRow(actionID, out var action))
+        if (!Sheets.ActionSheet.TryGetRow(actionId, out var action))
         {
             Plugin.PluginLog.Verbose("ILLEGAL STATE: Lumina Excel did not succesfully retrieve row.\nFailsafe triggering early return");
             return (default, null);
@@ -98,29 +95,28 @@ public class MOAction
             return (default, null);
         }
 
-        if (Plugin.ClientState.LocalPlayer == null)
+        if (!Plugin.PlayerState.IsLoaded)
         {
             Plugin.PluginLog.Verbose("ILLEGAL STATE: Dalamud has no reference to LocalPlayer.\nFailsafe triggering early return");
             return (default, null);
         }
 
-        if (Plugin.ClientState.LocalPlayer.ClassJob.RowId == 0)
+        if (Plugin.PlayerState.ClassJob.RowId == 0)
         {
             Plugin.PluginLog.Verbose("ILLEGAL STATE: Dalamud thinks you're an ADV\nFailsafe triggering early return");
             return (default, null);
         }
 
         var actionManager = ActionManager.Instance();
-        var adjusted = actionManager->GetAdjustedActionId(actionID);
+        var adjusted = actionManager->GetAdjustedActionId(actionId);
 
         var applicableActions = Stacks.Where(entry =>
             (entry.BaseAction.RowId == action.RowId ||
             entry.BaseAction.RowId == adjusted ||
             actionManager->GetAdjustedActionId(entry.BaseAction.RowId) == adjusted)
-            && VerifyJobEqualsOrEqualsParentJob(entry.Job, Plugin.ClientState.LocalPlayer.ClassJob.RowId)
-            );
+            && VerifyJobEqualsOrEqualsParentJob(entry.Job, Plugin.PlayerState.ClassJob.RowId));
 
-        MoActionStack stackToUse = null;
+        MoActionStack? stackToUse = null;
         foreach (var entry in applicableActions)
         {
             if (entry.Modifier == VirtualKey.NO_KEY)
@@ -136,13 +132,13 @@ public class MOAction
 
         if (stackToUse == null)
         {
-            Plugin.PluginLog.Verbose($"No action stack applicable for action: {action.Name.ExtractText()}");
+            Plugin.PluginLog.Verbose($"No action stack applicable for action: {action.Name.ToString()}");
             return (default, null);
         }
 
         foreach (var entry in stackToUse.Entries)
         {
-            Plugin.PluginLog.Verbose($"unadjusted entry action, {entry.Action.RowId}, {entry.Action.Name.ExtractText()}");
+            Plugin.PluginLog.Verbose($"unadjusted entry action, {entry.Action.RowId}, {entry.Action.Name.ToString()}");
             var (response, target) = CanUseAction(entry, actionType);
             if (response)
                 return (entry.Action, target);
@@ -152,9 +148,9 @@ public class MOAction
         return (default, null);
     }
 
-    private unsafe (bool, IGameObject Target) CanUseAction(StackEntry targ, ActionType actionType)
+    private unsafe (bool, IGameObject? Target) CanUseAction(StackEntry targ, ActionType actionType)
     {
-        if (targ.Target == null || targ.Action.RowId == 0 || Plugin.ClientState.LocalPlayer == null)
+        if (targ.Target == null || targ.Action.RowId == 0 || Plugin.ObjectTable.LocalPlayer == null || !Plugin.PlayerState.IsLoaded)
             return (false, null);
 
         var actionManager = ActionManager.Instance();
@@ -163,67 +159,67 @@ public class MOAction
 
         var target = targ.Target.GetTarget();
         if (target == null)
-            return targ.Target.ObjectNeeded ? (false, Plugin.ClientState.LocalPlayer) : (true, null);
+            return targ.Target.ObjectNeeded ? (false, Plugin.ObjectTable.LocalPlayer) : (true, null);
 
         // Check if ability is on CD or not (charges are fun!)
         var abilityOnCoolDownResponse = actionManager->IsActionOffCooldown(actionType, action.RowId);
-        Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} off cooldown? : {abilityOnCoolDownResponse}");
+        Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} off cooldown? : {abilityOnCoolDownResponse}");
         if (!abilityOnCoolDownResponse)
             return (false, target);
 
-        var player = Plugin.ClientState.LocalPlayer;
+        var player = Plugin.ObjectTable.LocalPlayer;
         var targetPtr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address;
         if (Plugin.Configuration.RangeCheck)
         {
             var playerPtr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)player.Address;
             var err = ActionManager.GetActionInRangeOrLoS(action.RowId, playerPtr, targetPtr);
+
             if (action.TargetArea)
                 return (true, target);
+
             if (err != 0 && err != 565)
                 return (false, target);
         }
 
-        Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} a role action?: {action.IsRoleAction}");
+        Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} a role action?: {action.IsRoleAction}");
         if (!action.IsRoleAction)
         {
-            Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
-            if (action.ClassJobLevel > Plugin.ClientState.LocalPlayer.Level)
+            Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
+            if (action.ClassJobLevel > player.Level)
                 return (false, target);
         }
 
-        Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} a area spell/ability? {action.TargetArea}");
+        Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} a area spell/ability? {action.TargetArea}");
         if (action.TargetArea)
             return (true, target);
 
-        var selfOnlyTargetAction = !action.CanTargetAlly && !action.CanTargetHostile && !action.CanTargetParty;
-        Plugin.PluginLog.Verbose($"Can {action.Name.ExtractText()} target: friendly - {action.CanTargetAlly}, hostile  - {action.CanTargetHostile}, party  - {action.CanTargetParty}, dead - {action.DeadTargetBehaviour == 0}, self - {action.CanTargetSelf}");
+        var selfOnlyTargetAction = action is { CanTargetAlly: false, CanTargetHostile: false, CanTargetParty: false };
+        Plugin.PluginLog.Verbose($"Can {action.Name.ToString()} target: friendly - {action.CanTargetAlly}, hostile  - {action.CanTargetHostile}, party  - {action.CanTargetParty}, dead - {action.DeadTargetBehaviour == 0}, self - {action.CanTargetSelf}");
         if (selfOnlyTargetAction)
         {
             Plugin.PluginLog.Verbose("Can only use this action on player, setting player as target");
-            target = Plugin.ClientState.LocalPlayer;
+            target = player;
         }
 
         var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId, (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address);
-        Plugin.PluginLog.Verbose($"Can I use action: {action.RowId} with name {action.Name.ExtractText()} on target {target.DataId} with name {target.Name} : {gameCanUseActionResponse}");
+        Plugin.PluginLog.Verbose($"Can I use action: {action.RowId} with name {action.Name.ToString()} on target {target.DataId} with name {target.Name} : {gameCanUseActionResponse}");
 
         return (gameCanUseActionResponse, target);
     }
 
-    public unsafe IGameObject GetGuiMoPtr() =>
+    public unsafe IGameObject? GetGuiMoPtr() =>
         Plugin.Objects.CreateObjectReference((nint)PronounModule.Instance()->UiMouseOverTarget);
 
-    public IGameObject GetFieldMo() =>
+    public IGameObject? GetFieldMo() =>
         Plugin.TargetManager.MouseOverTarget;
 
-    public unsafe IGameObject GetActorFromPlaceholder(string placeholder) =>
+    public unsafe IGameObject? GetActorFromPlaceholder(string placeholder) =>
         Plugin.Objects.CreateObjectReference((nint)PronounModule.Instance()->ResolvePlaceholder(placeholder, 1, 0));
 
 
-    public unsafe IGameObject GetActorFromCrosshairLocation() =>
+    public unsafe IGameObject? GetActorFromCrosshairLocation() =>
         Plugin.Objects.CreateObjectReference((nint)TargetSystem.Instance()->GetMouseOverObject(Plugin.Configuration.CrosshairWidth, Plugin.Configuration.CrosshairHeight));
 
-
-    public static bool VerifyJobEqualsOrEqualsParentJob(uint job, uint LocalPlayerRowID) =>
-    LocalPlayerRowID == job || (Sheets.ClassJobSheet.TryGetRow(job, out var classjob) && LocalPlayerRowID == classjob.ClassJobParent.RowId);
-
+    private static bool VerifyJobEqualsOrEqualsParentJob(uint job, uint localPlayerRowId) =>
+        localPlayerRowId == job || (Sheets.ClassJobSheet.TryGetRow(job, out var classjob) && localPlayerRowId == classjob.ClassJobParent.RowId);
 }
