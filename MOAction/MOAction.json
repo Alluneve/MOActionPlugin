@@ -4,6 +4,12 @@
 	"Punchline": "Mo' actions no problems",
 	"Description": "This plugin lets you target friends or enemies like a macro, without the clunkiness of a macro. /mo opens the configuration.",
 	"RepoUrl": "https://github.com/Infiziert90/MOActionPlugin",
-	"Tags": [ "Mouseover", "Macro" ],
+	"Tags": [
+    "Mouseover",
+    "Macro",
+    "Ground Queue",
+    "Skills",
+    "Job"
+  ],
 	"AcceptsFeedback": true
 }

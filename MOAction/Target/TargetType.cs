@@ -2,13 +2,13 @@
 
 namespace MOAction.Target;
 
-public abstract class TargetType(TargetType.PtrFunc function, string name, bool objneed = true)
+public abstract class TargetType(TargetType.PtrFunc function, string name, bool needsObject = true)
 {
     public delegate IGameObject? PtrFunc();
 
     protected readonly PtrFunc GetPtr = function;
     public readonly string TargetName = name;
-    public readonly bool ObjectNeeded = objneed;
+    public readonly bool ObjectNeeded = needsObject;
 
     public abstract IGameObject? GetTarget();
     public abstract bool IsTargetValid();

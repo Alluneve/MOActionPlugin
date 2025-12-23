@@ -32,6 +32,9 @@ public class MOActionConfiguration : IPluginConfiguration
 
     private unsafe void InitializeCrosshairLocation(){
         var dev = FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.Device.Instance();
+        if ((nint)dev == nint.Zero)
+            return;
+
         CrosshairWidth = (int)dev->Width/2;
         CrosshairHeight = (int)dev->Height/2;
     }

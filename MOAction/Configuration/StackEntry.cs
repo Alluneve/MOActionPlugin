@@ -1,11 +1,12 @@
-﻿using MOAction.Target;
+﻿using Lumina.Excel.Sheets;
+using MOAction.Target;
 
 namespace MOAction.Configuration;
 
-public class StackEntry(Lumina.Excel.Sheets.Action action, TargetType targ)
+public class StackEntry(Action action, TargetType targ)
 {
-    public Lumina.Excel.Sheets.Action Action = action;
+    public Action Action = action;
     public TargetType Target { get; set; } = targ;
 
-    public override string ToString() => $"{Action.Name.ExtractText()}@{Target}";
+    public override string ToString() => $"{Action.Name.ToString()}@{Target}";
 }

@@ -30,15 +30,15 @@ public class Plugin : IDalamudPlugin
     [PluginService] internal static IGameInteropProvider HookProvider { get; private set; } = null!;
     [PluginService] internal static IObjectTable Objects { get; private set; } = null!;
     [PluginService] internal static IKeyState KeyState { get; private set; } = null!;
-    [PluginService] internal static IChatGui Ichatgui { get; private set; } = null!;
+    [PluginService] internal static IChatGui Chat { get; private set; } = null!;
     [PluginService] internal static IPlayerState PlayerState { get; private set; } = null!;
     [PluginService] internal static IObjectTable ObjectTable { get; private set; } = null!;
 
 
-    public MOActionConfiguration Configuration;
+    public readonly MOActionConfiguration Configuration;
 
-    public readonly WindowSystem WindowSystem = new("MoActionPlugin");
-    public ConfigWindow ConfigWindow { get; }
+    private readonly WindowSystem WindowSystem = new("MoActionPlugin");
+    private ConfigWindow ConfigWindow { get; }
 
     public readonly MOAction MoAction;
     private List<Action> ApplicableActions;
@@ -71,18 +71,20 @@ public class Plugin : IDalamudPlugin
 
         IPCProvider.RegisterIPC(this, PluginInterface);
 
-        JobAbbreviations = Sheets.ClassJobSheet.Where(x => x.JobIndex > 0).OrderBy(c => c.Abbreviation.ExtractText()).ToList();
+        JobAbbreviations = Sheets.ClassJobSheet.Where(x => x.JobIndex > 0).OrderBy(c => c.Abbreviation.ToString()).ToList();
         ApplicableActions = Sheets.ActionSheet.Where(row => row is { IsPlayerAction: true, IsPvP: false, ClassJobLevel: > 0 }).Where(a => a.RowId != 212).ToList();
 
         SortActions();
         MoAction = new MOAction(this);
 
         foreach (var availableJobs in JobAbbreviations)
+        {
             JobActions.Add(availableJobs.RowId, ApplicableActions.Where(action =>
             {
-                var names = action.ClassJobCategory.Value.Name.ExtractText();
-                return names.Contains(availableJobs.Name.ExtractText()) || names.Contains(availableJobs.Abbreviation.ExtractText());
+                var names = action.ClassJobCategory.Value.Name.ToString();
+                return names.Contains(availableJobs.Name.ToString()) || names.Contains(availableJobs.Abbreviation.ToString());
             }).ToList());
+        }
 
         TargetTypes =
         [
@@ -152,7 +154,7 @@ public class Plugin : IDalamudPlugin
 
     public void CopyToClipboard(List<MoActionStack> list)
     {
-        List<ConfigurationEntry> entries = new();
+        List<ConfigurationEntry> entries = [];
         foreach (var elem in list)
         {
             var x = Configuration.Stacks.FirstOrDefault(e => elem.Equals(e));
@@ -167,7 +169,7 @@ public class Plugin : IDalamudPlugin
 
     public Dictionary<uint, HashSet<MoActionStack>> SortStacks(List<MoActionStack> list)
     {
-        Dictionary<uint, HashSet<MoActionStack>> toReturn = new();
+        Dictionary<uint, HashSet<MoActionStack>> toReturn = [];
         foreach (var c in JobAbbreviations)
         {
             var jobstack = list.Where(s => s.Job == c.RowId).ToList();
@@ -183,8 +185,7 @@ public class Plugin : IDalamudPlugin
     {
         SortStacks();
         MoAction.Stacks.Clear();
-        foreach (var x in SavedStacks)
-        foreach (var entry in x.Value)
+        foreach (var entry in SavedStacks.SelectMany(x => x.Value))
             MoAction.Stacks.Add(entry);
 
         Configuration.Stacks.Clear();
@@ -273,12 +274,12 @@ public class Plugin : IDalamudPlugin
         {
             foreach (var action in ApplicableActions)
             {
-                var nameStr = action.ClassJobCategory.Value.Name.ExtractText();
+                var nameStr = action.ClassJobCategory.Value.Name.ToString();
                 if (nameStr.Contains(name) || nameStr.Contains(abr))
                     tmp.Add(action);
             }
         }
 
-        ApplicableActions = tmp.OrderBy(c => c.Name.ExtractText()).ToList();
+        ApplicableActions = tmp.OrderBy(c => c.Name.ToString()).ToList();
     }
 }

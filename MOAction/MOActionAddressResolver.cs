@@ -7,7 +7,7 @@ public class MOActionAddressResolver
     public nint GtQueuePatch { get; private set; }
     public byte[] PreGtQueuePatchData { get; set; }
 
-    public MOActionAddressResolver(ISigScanner sig)
+    public MOActionAddressResolver()
     {
         //7.3
         //This specific address is inside the useAction function, in there exists a switch statement:
@@ -16,6 +16,6 @@ public class MOActionAddressResolver
         //   v24 = v23 ^ 1;
         //   break;
         //this signature refers to the XOR operator in said check
-        GtQueuePatch = sig.ScanModule("0F B6 C2 34 ?? 84 C0");
+        GtQueuePatch = Plugin.SigScanner.ScanModule("0F B6 C2 34 ?? 84 C0");
     }
 }
