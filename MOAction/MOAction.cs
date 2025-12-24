@@ -229,7 +229,7 @@ public class MOAction
 
         // Check if ability is on CD or not (charges are fun!)
         var abilityOnCoolDownResponse = actionManager->IsActionOffCooldown(actionType, action.RowId);
-        Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} off cooldown? : {abilityOnCoolDownResponse}");
+        Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} off cooldown? : {abilityOnCoolDownResponse}");
         if (!abilityOnCoolDownResponse)
             return false;
 
@@ -245,22 +245,22 @@ public class MOAction
                 return false;
         }
 
-        Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} a role action?: {action.IsRoleAction}");
+        Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} a role action?: {action.IsRoleAction}");
         if (!action.IsRoleAction)
         {
             Plugin.PluginLog.Verbose(
-                $"Is {action.Name.ExtractText()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
+                $"Is {action.Name.ToString()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
             if (action.ClassJobLevel > Plugin.ObjectTable.LocalPlayer!.Level)
                 return false;
         }
 
-        Plugin.PluginLog.Verbose($"Is {action.Name.ExtractText()} a area spell/ability? {action.TargetArea}");
+        Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} a area spell/ability? {action.TargetArea}");
         if (action.TargetArea)
             return true;
 
         var selfOnlyTargetAction = !action.CanTargetAlly && !action.CanTargetHostile && !action.CanTargetParty;
         Plugin.PluginLog.Verbose(
-            $"Can {action.Name.ExtractText()} target: friendly - {action.CanTargetAlly}, hostile  - {action.CanTargetHostile}, party  - {action.CanTargetParty}, dead - {action.DeadTargetBehaviour == 0}, self - {action.CanTargetSelf}");
+            $"Can {action.Name.ToString()} target: friendly - {action.CanTargetAlly}, hostile  - {action.CanTargetHostile}, party  - {action.CanTargetParty}, dead - {action.DeadTargetBehaviour == 0}, self - {action.CanTargetSelf}");
         if (selfOnlyTargetAction)
         {
             Plugin.PluginLog.Verbose("Can only use this action on player, setting player as target");
@@ -270,7 +270,7 @@ public class MOAction
         var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId,
             (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address);
         Plugin.PluginLog.Verbose(
-            $"Can I use action: {action.RowId} with name {action.Name.ExtractText()} on target {target.DataId} with name {target.Name} : {gameCanUseActionResponse}");
+            $"Can I use action: {action.RowId} with name {action.Name.ToString()} on target {target.DataId} with name {target.Name} : {gameCanUseActionResponse}");
         return gameCanUseActionResponse;
     }
 
