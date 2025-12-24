@@ -20,7 +20,6 @@ namespace MOAction;
 public class Plugin : IDalamudPlugin
 {
     [PluginService] internal static IDalamudPluginInterface PluginInterface { get; private set; } = null!;
-    [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static ITargetManager TargetManager { get; private set; } = null!;
     [PluginService] internal static IDataManager DataManager { get; private set; } = null!;
     [PluginService] private static ICommandManager CommandManager { get; set; } = null!;
@@ -206,8 +205,9 @@ public class Plugin : IDalamudPlugin
         var toReturn = new List<MoActionStack>();
         foreach (var entry in configurationEntries)
         {
+            PluginLog.Verbose("entry: {entry}", entry);
             var action = ApplicableActions.FirstOrDefault(x => x.RowId == entry.BaseId);
-            if (action.RowId == 0)
+            if (action is null || action.RowId == 0)
                 continue;
 
             var job = entry.JobIdx;

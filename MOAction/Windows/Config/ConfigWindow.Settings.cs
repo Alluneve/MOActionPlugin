@@ -101,16 +101,16 @@ public partial class ConfigWindow
     {
         if (ImGui.Button("Save"))
         {
-            Plugin.SaveStacks();
             Plugin.InitUsableActions();
+            Plugin.SaveStacks();
         }
 
         ImGui.SameLine();
         if (ImGui.Button("Save and Close"))
         {
             IsOpen = false;
-            Plugin.SaveStacks();
             Plugin.InitUsableActions();
+            Plugin.SaveStacks();
         }
 
         ImGui.SameLine();
