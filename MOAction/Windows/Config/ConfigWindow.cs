@@ -79,24 +79,31 @@ public partial class ConfigWindow : Window, IDisposable
         }
     }
 
-    private void ImportStringToMouseOverActions(String import)
+    private void ImportStringToMouseOverActions(string encoded)
     {
         try
         {
-            var importString = Encoding.UTF8.GetString(Convert.FromBase64String(import));
-            Plugin.PluginLog.Verbose($"import: {importString}");
-            var jsonDeserializeObject = JsonConvert.DeserializeObject<List<ConfigurationEntry>>(importString);
-            Plugin.PluginLog.Verbose($"jsonDeserializedObject: {JsonConvert.SerializeObject(jsonDeserializeObject)}");
-            var tempStacks = Plugin.SortStacks(Plugin.RebuildStacks(jsonDeserializeObject));
-            Plugin.PluginLog.Information("Imported stacks on base actions will never overwrite existing stacks and are thus not imported.");
-            Plugin.Ichatgui.Print("Imported stacks on base actions will never overwrite existing stacks and are thus not imported.", "MoAction", 0x1F);
+            var import = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
+            var configEntries = JsonConvert.DeserializeObject<List<ConfigurationEntry>>(import);
+            if (configEntries == null || configEntries.Count == 0)
+            {
+                Plugin.PluginLog.Warning("Importing configuration entry failed.");
+                Plugin.PluginLog.Warning($"Base64: {encoded}");
+
+                Plugin.Chat.PrintError("Error importing configuration entry.");
+                return;
+            }
+
+            var tempStacks = Plugin.SortStacks(Plugin.RebuildStacks(configEntries));
+
+            Plugin.Chat.Print("Imported stacks on base actions will never overwrite existing stacks and are thus not imported.", "MoAction", 0x1F);
             foreach (var (classjob, v) in tempStacks)
             {
                 //no need to import if there's nothing to import for that specific classjob
                 if (v.Count > 0)
                 {
                     Plugin.PluginLog.Information("importing: {import}", v);
-                    Plugin.Ichatgui.Print("importing for " + Sheets.ClassJobSheet.GetRow(classjob).Abbreviation.ExtractText() + ":\n" + string.Join("\n", v.Select(entry => $"[{entry}]")));
+                    Plugin.Chat.Print("importing for " + Sheets.ClassJobSheet.GetRow(classjob).Abbreviation.ExtractText() + ":\n" + string.Join("\n", v.Select(entry => $"[{entry}]")));
                     if (Plugin.SavedStacks.TryGetValue(classjob, out var value))
                     {
                         //TODO: union currently ignores new stacks of baseactions already configured with any stack and does not do a deeper union on the lists within the stack

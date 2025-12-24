@@ -23,23 +23,17 @@ public class MOAction
     public MOAction(Plugin plugin)
     {
         Plugin = plugin;
-        Address = new MOActionAddressResolver(Plugin.SigScanner);
-
-        Plugin.PluginLog.Info("===== M O A C T I O N =====");
+        Address = new MOActionAddressResolver();
     }
 
     public unsafe void Enable()
     {
-        if (false)
-        {
-            // read current bytes at GtQueuePatch for Dispose
-            SafeMemory.ReadBytes(Address.GtQueuePatch, 3, out var prePatch);
-            Address.PreGtQueuePatchData = prePatch;
+        // read current bytes at GtQueuePatch for Dispose
+        SafeMemory.ReadBytes(Address.GtQueuePatch, 3, out var prePatch);
+        Address.PreGtQueuePatchData = prePatch;
 
-            //writing a AL operator to overwrite existing XOR operator
-            SafeMemory.WriteBytes(Address.GtQueuePatch, [0x90, 0x32, 0xC0]);
-
-        }
+        //writing a AL operator to overwrite existing XOR operator
+        SafeMemory.WriteBytes(Address.GtQueuePatch, [0x90, 0x32, 0xC0]);
 
         RequestActionHook = Plugin.HookProvider.HookFromAddress<ActionManager.Delegates.UseAction>(ActionManager.MemberFunctionPointers.UseAction, HandleRequestAction);
         RequestActionHook.Enable();
@@ -50,41 +44,31 @@ public class MOAction
         if (RequestActionHook.IsEnabled)
         {
             RequestActionHook.Dispose();
-
-            if (false)
-            {
-                //re-write the original 2 bytes that were there
-                SafeMemory.WriteBytes(Address.GtQueuePatch, Address.PreGtQueuePatchData);
-            }
+            //re-write the original 2 bytes that were there
+            SafeMemory.WriteBytes(Address.GtQueuePatch, Address.PreGtQueuePatchData);
         }
     }
 
     /// <summary>
     /// Main hooked function for the Mouse over action plugin, it intercepts the requested action
     /// </summary>
-    private unsafe bool HandleRequestAction(ActionManager* thisPtr, ActionType actionType, uint actionId,
-        ulong targetId, uint extraParam, ActionManager.UseActionMode mode, uint comboRouteId, bool* outOptAreaTargeted)
+    private unsafe bool HandleRequestAction(ActionManager* thisPtr, ActionType actionType, uint actionId, ulong targetId, uint extraParam, ActionManager.UseActionMode mode, uint comboRouteId, bool* outOptAreaTargeted)
     {
         // Only care about "real" actions. Not doing anything dodgy
         if (actionType != ActionType.Action)
-            return RequestActionHook.Original(thisPtr, actionType, actionId, targetId, extraParam, mode, comboRouteId,
-                outOptAreaTargeted);
+            return RequestActionHook.Original(thisPtr, actionType, actionId, targetId, extraParam, mode, comboRouteId, outOptAreaTargeted);
         Plugin.PluginLog.Verbose($"Receiving handling request for Action: {actionId}");
 
         var (action, target) = GetActionTarget(actionId, actionType);
         if (action.RowId == 0)
-            return RequestActionHook.Original(thisPtr, actionType, actionId, targetId, extraParam, mode, comboRouteId,
-                outOptAreaTargeted);
+            return RequestActionHook.Original(thisPtr, actionType, actionId, targetId, extraParam, mode, comboRouteId, outOptAreaTargeted);
 
         var objectId = target?.GameObjectId ?? 0xE0000000;
-        Plugin.PluginLog.Verbose(
-            $"Execution Action {action.Name.ExtractText()} with ActionID {action.RowId} on object with ObjectId {objectId}");
+        Plugin.PluginLog.Verbose($"Execution Action {action.Name.ToString()} with ActionID {action.RowId} on object with ObjectId {objectId}");
 
-        var ret = RequestActionHook.Original(thisPtr, actionType, action.RowId, objectId, extraParam, mode,
-            comboRouteId, outOptAreaTargeted);
+        var ret = RequestActionHook.Original(thisPtr, actionType, action.RowId, objectId, extraParam, mode, comboRouteId, outOptAreaTargeted);
 
-        Plugin.PluginLog.Verbose(
-            $"Executed Action {action.Name.ExtractText()} with ActionID {action.RowId} on object with ObjectId {objectId}, response: {ret}");
+        Plugin.PluginLog.Verbose($"Executed Action {action.Name.ToString()} with ActionID {action.RowId} on object with ObjectId {objectId}, response: {ret}");
 
         // Enqueue GT action
         var actionManager = ActionManager.Instance();
@@ -105,27 +89,24 @@ public class MOAction
     /// </summary>
     /// <param name="actionId">the action id being handled</param>
     /// <param name="actionType">action type is only used in the off-cooldown check, should always be "Action"</param>
-    private unsafe (Lumina.Excel.Sheets.Action action, IGameObject? target) GetActionTarget(uint actionId,
-        ActionType actionType)
+
+    private unsafe (Lumina.Excel.Sheets.Action action, IGameObject? target) GetActionTarget(uint actionId, ActionType actionType)
     {
         if (!Sheets.ActionSheet.TryGetRow(actionId, out var action))
         {
-            Plugin.PluginLog.Verbose(
-                "ILLEGAL STATE: Lumina Excel did not succesfully retrieve row.\nFailsafe triggering early return");
+            Plugin.PluginLog.Verbose("ILLEGAL STATE: Lumina Excel did not succesfully retrieve row.\nFailsafe triggering early return");
             return (default, null);
         }
 
         if (action.RowId == 0)
         {
-            Plugin.PluginLog.Verbose(
-                "ILLEGAL STATE: Lumina Excel returned default row.\nFailsafe triggering early return");
+            Plugin.PluginLog.Verbose("ILLEGAL STATE: Lumina Excel returned default row.\nFailsafe triggering early return");
             return (default, null);
         }
 
         if (!Plugin.PlayerState.IsLoaded)
         {
-            Plugin.PluginLog.Verbose(
-                "ILLEGAL STATE: Dalamud has no reference to LocalPlayer.\nFailsafe triggering early return");
+            Plugin.PluginLog.Verbose("ILLEGAL STATE: Dalamud has no reference to LocalPlayer.\nFailsafe triggering early return");
             return (default, null);
         }
 
@@ -163,17 +144,14 @@ public class MOAction
         if (!isDutyAction)
         {
             applicableActions = Stacks.Where(entry =>
-                entry.BaseAction.ActionType == ActionType.Action &&
-                (
-                    entry.BaseAction.RowId == action.RowId ||
-                    entry.BaseAction.RowId == adjusted ||
-                    actionManager->GetAdjustedActionId(entry.BaseAction.RowId) == adjusted
-                )
-                && VerifyJobEqualsOrEqualsParentJob(entry.Job, Plugin.PlayerState.ClassJob.RowId)
-            );
+                (entry.BaseAction.RowId == action.RowId ||
+                 entry.BaseAction.RowId == adjusted ||
+                 actionManager->GetAdjustedActionId(entry.BaseAction.RowId) == adjusted)
+                && VerifyJobEqualsOrEqualsParentJob(entry.Job, Plugin.PlayerState.ClassJob.RowId));
+
         }
 
-        MoActionStack stackToUse = null;
+        MoActionStack? stackToUse = null;
         foreach (var entry in applicableActions)
         {
             if (entry.Modifier == VirtualKey.NO_KEY)
@@ -189,7 +167,7 @@ public class MOAction
 
         if (stackToUse == null)
         {
-            Plugin.PluginLog.Verbose($"No action stack applicable for action: {action.Name.ExtractText()}");
+            Plugin.PluginLog.Verbose($"No action stack applicable for action: {action.Name.ToString()}");
             return (default, null);
         }
 
@@ -197,9 +175,7 @@ public class MOAction
         {
             Plugin.PluginLog.Verbose($"unadjusted entry action, {entry.Action.RowId}, {entry.Action.Name}");
             if (CanUseAction(entry, actionType, out var target, out var usedAction))
-            {
                 return (usedAction, target);
-            }
         }
 
         Plugin.PluginLog.Verbose("Chosen MoAction Entry stack did not have any usable actions.");
@@ -209,45 +185,47 @@ public class MOAction
     /// <summary>
     /// Figures out if you are able to cast the action inside stackentry at the target inside the stack entry.
     /// </summary>
-    /// <param name="stackentry">stack entry to be checked</param>
+    /// <param name="stackEntry">stack entry to be checked</param>
     /// <param name="actionType">used for the cooldown check, should always be "Action"</param>
     /// <param name="target">out parameter, the target to return to the hook to fire the spell at</param>
     /// <param name="action">out parameter, the spell to return to the hook to fire at the target</param>
-    private unsafe bool CanUseAction(StackEntry stackentry, ActionType actionType, out IGameObject target,
-        out Lumina.Excel.Sheets.Action action)
+    private unsafe bool CanUseAction(StackEntry stackEntry, ActionType actionType, out IGameObject? target, out Lumina.Excel.Sheets.Action action)
     {
-        target = stackentry.Target.GetTarget();
-        var id = stackentry.Action.RowId;
+        target = stackEntry.Target.GetTarget();
+        var id = stackEntry.Action.RowId;
         //Early sanity checks
-        if (stackentry.Target == null || id == 0 || !Plugin.PlayerState.IsLoaded ||
-            stackentry.Action.ActionType is not (ActionType.GeneralAction or ActionType.Action))
+        if (id == 0 || !Plugin.PlayerState.IsLoaded || stackEntry.Action.ActionType is not (ActionType.GeneralAction or ActionType.Action))
         {
+            Plugin.PluginLog.Verbose("Invalid action or player state not loaded, returning false");
             action = default;
             return false;
         }
 
         var actionManager = ActionManager.Instance();
-        //assign the out action to the action to be checked if can be used
-        if (stackentry.Action.ActionType == ActionType.Action)
+        switch (stackEntry.Action.ActionType)
         {
-            if (!Sheets.ActionSheet.TryGetRow(actionManager->GetAdjustedActionId(id), out action))
-                return false; // just in case
-        }
-        else if (stackentry.Action.ActionType == ActionType.GeneralAction)
-        {
-            //From the GeneralActions saved, we handle duty action 1-5
-            if (!Utils.GetDutyActionRow(id, out action))
+            //assign the out action to the action to be checked if can be used
+            case ActionType.Action:
+            {
+                if (!Sheets.ActionSheet.TryGetRow(actionManager->GetAdjustedActionId(id), out action))
+                    return false; // just in case
+                break;
+            }
+            case ActionType.GeneralAction:
+            {
+                //From the GeneralActions saved, we handle duty action 1-5
+                if (!Utils.GetDutyActionRow(id, out action))
+                    return false;
+                break;
+            }
+            default:
+                action = default;
                 return false;
         }
-        else
-        {
-            action = default;
-            return false;
-        }
 
-        //if there's no target, return false unless it is a ground target action at mousepoint.
-        if (target == null)
-            return !stackentry.Target.ObjectNeeded;
+        //if there's no target, return false unless it is a ground target action at mouse point.
+        if (target is null)
+            return !stackEntry.Target.ObjectNeeded;
 
         // Check if ability is on CD or not (charges are fun!)
         var abilityOnCoolDownResponse = actionManager->IsActionOffCooldown(actionType, action.RowId);
@@ -255,7 +233,7 @@ public class MOAction
         if (!abilityOnCoolDownResponse)
             return false;
 
-        var player = Plugin.ObjectTable.LocalPlayer!;
+        var player = Plugin.ObjectTable.LocalPlayer;
         var targetPtr = (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address;
         if (Plugin.Configuration.RangeCheck)
         {
@@ -307,12 +285,8 @@ public class MOAction
 
 
     public unsafe IGameObject? GetActorFromCrosshairLocation() =>
-        Plugin.Objects.CreateObjectReference(
-            (nint)TargetSystem.Instance()->GetMouseOverObject(Plugin.Configuration.CrosshairWidth,
-                Plugin.Configuration.CrosshairHeight));
+        Plugin.Objects.CreateObjectReference((nint)TargetSystem.Instance()->GetMouseOverObject(Plugin.Configuration.CrosshairWidth, Plugin.Configuration.CrosshairHeight));
 
-
-    private static bool VerifyJobEqualsOrEqualsParentJob(uint job, uint LocalPlayerRowID) =>
-        LocalPlayerRowID == job || (Sheets.ClassJobSheet.TryGetRow(job, out var classjob) &&
-                                    LocalPlayerRowID == classjob.ClassJobParent.RowId);
+    private static bool VerifyJobEqualsOrEqualsParentJob(uint job, uint localPlayerRowId) =>
+        localPlayerRowId == job || (Sheets.ClassJobSheet.TryGetRow(job, out var classjob) && localPlayerRowId == classjob.ClassJobParent.RowId);
 }

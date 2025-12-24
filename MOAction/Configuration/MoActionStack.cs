@@ -1,33 +1,18 @@
-﻿using Dalamud.Game.ClientState.Keys;
-using System;
+﻿using System;
+using Dalamud.Game.ClientState.Keys;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace MOAction.Configuration;
 
-public class MoActionStack : IEquatable<MoActionStack>, IComparable<MoActionStack>
+public class MoActionStack(MoActionRecord baseAction, List<StackEntry> list) : IEquatable<MoActionStack>, IComparable<MoActionStack>
 {
     public static readonly VirtualKey[] AllKeys = [VirtualKey.NO_KEY, VirtualKey.SHIFT, VirtualKey.MENU, VirtualKey.CONTROL];
-    public MoActionRecord BaseAction { get; set; }
-    public List<StackEntry> Entries { get; set; }
-    public uint Job { get; set; }
+    public MoActionRecord BaseAction { get; set; } = baseAction;
+    public List<StackEntry> Entries { get; set; } = list ?? [];
+    public uint Job { get; set; } = uint.MaxValue;
 
-    public VirtualKey Modifier { get; set; }
-
-     public MoActionStack(MoActionRecord baseAction, List<StackEntry> list)
-    {
-        BaseAction = baseAction;
-        Entries = list;
-        Job = uint.MaxValue;
-        Modifier = 0;
-    }
-     public MoActionStack()
-    {
-        BaseAction = new();
-        Entries = [];
-        Job = uint.MaxValue;
-        Modifier = 0;
-    }
+    public VirtualKey Modifier { get; set; } = 0;
 
     public bool Equals(ConfigurationEntry c)
     {
@@ -38,14 +23,14 @@ public class MoActionStack : IEquatable<MoActionStack>, IComparable<MoActionStac
         {
             var myEntry = Entries[i];
             var theirEntry = c.ConfigurationActionStacks[i];
-            if (myEntry.Target.TargetName != theirEntry.Target && myEntry.Action.RowId != theirEntry.ActionId && myEntry.Action.ActionType != theirEntry.ActionType)
+            if (myEntry.Target.TargetName != theirEntry.Target && myEntry.Action.RowId != theirEntry.ActionId)
                 return false;
         }
 
         if (Modifier != c.Modifier)
             return false;
 
-        if (BaseAction.RowId!= c.BaseId)
+        if (BaseAction.RowId != c.BaseId)
             return false;
 
         return true;
@@ -57,7 +42,7 @@ public class MoActionStack : IEquatable<MoActionStack>, IComparable<MoActionStac
         if (other == null)
             return 1;
 
-        return string.Compare(BaseAction.Name, other.BaseAction.Name, StringComparison.Ordinal);
+        return string.Compare(BaseAction.Name.ToString(), other.BaseAction.Name.ToString(), StringComparison.Ordinal);
     }
 
     //TODO make the overwritten equals and hashcodes a bit more smart, to not ignore the deeper stackentry list
@@ -67,7 +52,7 @@ public class MoActionStack : IEquatable<MoActionStack>, IComparable<MoActionStac
     }
 
     //TODO make the overwritten equals and hashcodes a bit more smart, to not ignore the deeper stackentry list
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj == null || obj.GetType() != GetType())
             return false;
@@ -86,9 +71,11 @@ public class MoActionStack : IEquatable<MoActionStack>, IComparable<MoActionStac
     }
 
     public string GetJobAbr()
-    {
-        return Job == uint.MaxValue ? "Unset Job" : Sheets.ClassJobSheet.First(x => x.RowId == Job).Abbreviation.ExtractText();
-    }
+        => Job == uint.MaxValue ? "Unset Job" : Sheets.ClassJobSheet.First(x => x.RowId == Job).Abbreviation.ToString();
 
-    public override string ToString() => $"{BaseAction.Name} - {string.Join(", ",Entries.Select(entry => $"[{entry}]"))}";
+    public string ToJobString()
+        => Job == uint.MaxValue ? "Unset Job" : Job.ToString();
+
+    public override string ToString()
+        => $"{BaseAction.Name.ToString()} - {string.Join(", ",Entries.Select(entry => $"[{entry}]"))}";
 }

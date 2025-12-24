@@ -7,7 +7,7 @@ namespace MOAction;
 
 public static class IPCProvider
 {
-    private static Plugin? Plugin;
+    private static Plugin Plugin;
     private static ICallGateProvider<uint[]> MethodRetargetedActions = null!;
 
     public static void RegisterIPC(Plugin plugin, IDalamudPluginInterface pluginInterface)
@@ -20,9 +20,6 @@ public static class IPCProvider
 
     private static uint[] GetRetargetedActions()
     {
-        if (Plugin == null)
-            return [];
-
         List<uint> retargetedActions = [];
         Plugin.MoAction.Stacks.ForEach(stack =>
         {
@@ -71,6 +68,5 @@ public static class IPCProvider
     public static void Dispose()
     {
         MethodRetargetedActions.UnregisterFunc();
-        Plugin = null;
     }
 }
