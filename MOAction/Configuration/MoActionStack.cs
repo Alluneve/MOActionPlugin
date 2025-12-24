@@ -37,7 +37,7 @@ public class MoActionStack(MoActionRecord baseAction, List<StackEntry> list) : I
     }
 
     //TODO make the overwritten equals and hashcodes a bit more smart, to not ignore the deeper stackentry list
-    public int CompareTo(MoActionStack other)
+    public int CompareTo(MoActionStack? other)
     {
         if (other == null)
             return 1;
@@ -62,7 +62,7 @@ public class MoActionStack(MoActionRecord baseAction, List<StackEntry> list) : I
     }
 
     //TODO make the overwritten equals and hashcodes a bit more smart, to not ignore the deeper stackentry list
-     public bool Equals(MoActionStack other)
+     public bool Equals(MoActionStack? other)
     {
         if (other == null)
             return false;
