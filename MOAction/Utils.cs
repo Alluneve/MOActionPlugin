@@ -54,8 +54,10 @@ public static class Utils
 
 public class MoActionRecordComparer : IEqualityComparer<MoActionRecord>
 {
-    bool IEqualityComparer<MoActionRecord>.Equals(MoActionRecord x, MoActionRecord y)
+    bool IEqualityComparer<MoActionRecord>.Equals(MoActionRecord? x, MoActionRecord? y)
     {
+        if(x is null || y is null)
+            return false;
         return x.RowId == y.RowId && x.ActionType == y.ActionType;
     }
 

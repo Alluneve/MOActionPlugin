@@ -118,7 +118,7 @@ public partial class ConfigWindow
         {
             if (Plugin.PlayerState.IsLoaded)
             {
-                MoActionStack stack = new();
+                MoActionStack stack = new(new MoActionRecord(),[]);
                 var job = Plugin.PlayerState.ClassJob.RowId;
 
                 stack.Job = job;
@@ -127,7 +127,7 @@ public partial class ConfigWindow
             }
             else
             {
-                Plugin.NewStacks.Add(new MoActionStack());
+                Plugin.NewStacks.Add(new MoActionStack(new MoActionRecord(), []));
             }
         }
     }
