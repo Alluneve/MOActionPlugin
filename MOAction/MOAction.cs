@@ -264,7 +264,7 @@ public class MOAction
         if (selfOnlyTargetAction)
         {
             Plugin.PluginLog.Verbose("Can only use this action on player, setting player as target");
-            target = Plugin.ObjectTable.LocalPlayer!;
+            target = player;
         }
 
         var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId,
