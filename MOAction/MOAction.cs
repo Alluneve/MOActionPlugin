@@ -248,9 +248,8 @@ public class MOAction
         Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} a role action?: {action.IsRoleAction}");
         if (!action.IsRoleAction)
         {
-            Plugin.PluginLog.Verbose(
-                $"Is {action.Name.ToString()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
-            if (action.ClassJobLevel > Plugin.ObjectTable.LocalPlayer!.Level)
+            Plugin.PluginLog.Verbose($"Is {action.Name.ToString()} usable at level: {action.ClassJobLevel} available for player {player.Name} with {player.Level}?");
+            if (action.ClassJobLevel > player.Level)
                 return false;
         }
 
@@ -259,18 +258,15 @@ public class MOAction
             return true;
 
         var selfOnlyTargetAction = action is { CanTargetAlly: false, CanTargetHostile: false, CanTargetParty: false };
-        Plugin.PluginLog.Verbose(
-            $"Can {action.Name.ToString()} target: friendly - {action.CanTargetAlly}, hostile  - {action.CanTargetHostile}, party  - {action.CanTargetParty}, dead - {action.DeadTargetBehaviour == 0}, self - {action.CanTargetSelf}");
+        Plugin.PluginLog.Verbose($"Can {action.Name.ToString()} target: friendly - {action.CanTargetAlly}, hostile  - {action.CanTargetHostile}, party  - {action.CanTargetParty}, dead - {action.DeadTargetBehaviour == 0}, self - {action.CanTargetSelf}");
         if (selfOnlyTargetAction)
         {
             Plugin.PluginLog.Verbose("Can only use this action on player, setting player as target");
             target = player;
         }
 
-        var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId,
-            (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address);
-        Plugin.PluginLog.Verbose(
-            $"Can I use action: {action.RowId} with name {action.Name.ToString()} on target {target.DataId} with name {target.Name} : {gameCanUseActionResponse}");
+        var gameCanUseActionResponse = ActionManager.CanUseActionOnTarget(action.RowId, (FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)target.Address);
+        Plugin.PluginLog.Verbose($"Can I use action: {action.RowId} with name {action.Name.ToString()} on target {target.BaseId} with name {target.Name} : {gameCanUseActionResponse}");
         return gameCanUseActionResponse;
     }
 
