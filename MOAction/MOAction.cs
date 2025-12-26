@@ -258,7 +258,7 @@ public class MOAction
         if (action.TargetArea)
             return true;
 
-        var selfOnlyTargetAction = !action.CanTargetAlly && !action.CanTargetHostile && !action.CanTargetParty;
+        var selfOnlyTargetAction = action is { CanTargetAlly: false, CanTargetHostile: false, CanTargetParty: false };
         Plugin.PluginLog.Verbose(
             $"Can {action.Name.ToString()} target: friendly - {action.CanTargetAlly}, hostile  - {action.CanTargetHostile}, party  - {action.CanTargetParty}, dead - {action.DeadTargetBehaviour == 0}, self - {action.CanTargetSelf}");
         if (selfOnlyTargetAction)
